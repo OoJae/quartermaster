@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { RunCard } from "./runcard.js";
 import { Site } from "./site.js";
-import { Broker } from "./requisition.js";
+import { Broker, applyGuardrails, recordSpend } from "./requisition.js";
 import { runAgent } from "./agent.js";
 import { ensureOperatorBase, prepareVerifier, runVerifier, graderPackSha } from "./verifier.js";
 import { authorize, settle } from "./settle.js";
@@ -44,6 +44,9 @@ export async function runJob(jobId: string, opts: JobOptions = {}) {
     const probe = await site.probe();
     if (!probe.ok) throw new Error("perimeter probe failed; refusing to run the agent");
 
+    // 3b. purchase-grade guardrails on the stack before any agent action
+    await applyGuardrails(card);
+
     // 4. the agent builds; infra arrives only through requisitions
     const broker = new Broker(card, site);
     await runAgent(card, site, broker);
@@ -62,6 +65,9 @@ export async function runJob(jobId: string, opts: JobOptions = {}) {
     const live = (await cos.listSandboxes({ limit: 100 })).filter((b) => !["destroyed", "destroying", "failed"].includes(b.toJSON().status));
     const orphans = live.filter((b) => !expected.has(b.id) && (b.toJSON().name ?? "").startsWith("q"));
     card.add("hygiene.check", { live: live.length, orphans: orphans.map((b) => b.toJSON().name) });
+
+    // 7b. what the stack cost, from Stripe Projects
+    await recordSpend(card).catch(() => {});
 
     // 8. settle: capture for verified work, release the hold otherwise
     const result = await settle(card, pi.id, verdict, { verdictSha256, runCardHead: card.head, hygieneOk: orphans.length === 0 });

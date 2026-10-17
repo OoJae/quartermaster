@@ -5,12 +5,31 @@ import type { RunCard } from "./runcard.js";
 import type { Site, Capability } from "./site.js";
 import { CAPABILITY_MAP } from "./providers.js";
 import { stripeCli, reloadEnv } from "./stripecli.js";
+import { sh } from "./createos.js";
 
 export const policy = parseYaml(readFileSync("policy.yaml", "utf8"));
 export const approvals = new EventEmitter();
 approvals.setMaxListeners(50);
 
-export type RequisitionInput = { capability: string; reason: string; env_names?: string[]; expected_usage?: string };
+export type RequisitionInput = { capability: string; reason: string; env_names?: string[]; expected_usage?: string; tier?: string };
+
+/** Purchase-grade guardrails BEFORE the agent runs: per-provider monthly caps applied through Stripe Projects billing. */
+export async function applyGuardrails(card: RunCard) {
+  const caps: Record<string, number> = policy.spend?.provider_caps_usd ?? {};
+  const applied: Record<string, string> = {};
+  for (const [provider, usd] of Object.entries(caps)) {
+    const r = await stripeCli(["projects", "billing", "update", "--limit", String(usd), "--provider", provider, "--json"], 60_000);
+    applied[provider] = r.json?.ok ? `$${Number(r.json.data?.usage_limits?.max_amount ?? usd * 100) / 100}/${r.json.data?.usage_limits?.recurring_interval ?? "month"}` : `failed: ${r.json?.error?.message ?? "unknown"}`;
+  }
+  card.add("projects.guardrails", { command: "stripe projects billing update --limit <usd> --provider <p>", providerCaps: applied, tiers: policy.requisitions.tiers, environment: policy.environment });
+}
+
+/** What the stack actually cost, straight from Stripe Projects. */
+export async function recordSpend(card: RunCard) {
+  const r = await stripeCli(["projects", "spend", "--json"], 60_000);
+  const months = r.json?.data?.months ?? [];
+  card.add("projects.spend", { command: "stripe projects spend --json", months, totalUsd: months.reduce((a: number, m: any) => a + Number(m.total ?? 0), 0) / 100 || 0, note: months.length ? undefined : "no charges: every requisition was free tier" });
+}
 
 async function directoryQuote(query: string) {
   const cacheFile = "runs/directory-cache.json";
@@ -37,6 +56,8 @@ export class Broker {
     const allowedCaps: string[] = policy.requisitions.allowed_capabilities;
     if (!map || !allowedCaps.includes(cap)) return this.deny(reqId, `capability "${input.capability}" is not on this site's allowlist (${allowedCaps.join(", ")})`);
     if (this.count > policy.requisitions.max_per_job) return this.deny(reqId, `requisition limit (${policy.requisitions.max_per_job}) reached for this job`);
+    if (input.tier && !["free", "hobby"].includes(String(input.tier).toLowerCase()) && policy.requisitions.tiers === "free_only")
+      return this.deny(reqId, `paid tier "${input.tier}" is denied by policy (tiers: free_only). Ask a human operator to change policy.yaml.`);
     if (this.site.caps.has(cap)) return `Capability "${cap}" is already granted. Use the existing env vars; requests go through the site proxy.`;
 
     // 2. quote: Stripe Directory (discovery) + Stripe Projects catalog (the command is rebuilt from validated IDs, never from search text)
@@ -79,7 +100,14 @@ export class Broker {
     const secrets = map.secrets();
     if (!secrets) return this.deny(reqId, "credentials not found after provisioning");
     await this.site.grant(cap, secrets);
-    this.card.add("requisition.receipt_pending", { reqId, note: "complete when the agent's smoke test passes" });
+
+    // 6. receiving inspection: prove the capability works end to end THROUGH the perimeter, from the agent VM
+    const probe = { database: `curl -s -o /dev/null -w '%{http_code}' --max-time 20 -X POST $NEON_FETCH_ENDPOINT -H "Neon-Connection-String: $DATABASE_URL" -H 'content-type: application/json' -d '{"query":"select 1","params":[]}'`,
+      email: `curl -s -o /dev/null -w '%{http_code}' --max-time 20 $RESEND_BASE_URL/domains -H "Authorization: Bearer $RESEND_API_KEY"`,
+      payments: `curl -s -o /dev/null -w '%{http_code}' --max-time 20 $STRIPE_API_BASE/v1/balance -H "Authorization: Bearer $STRIPE_SECRET_KEY"` }[cap];
+    const r = await sh(this.site.agent, probe, 60_000).catch(() => null);
+    const code = r?.stdout.trim() ?? "error";
+    this.card.add("requisition.receipt", { reqId, capability: cap, inspection: "agent VM -> proxy -> provider, using placeholder credentials", httpStatus: code, ok: /^2\d\d$/.test(code) });
     return [
       `GRANTED ${reqId}: capability "${cap}" via ${map.provider}/${map.service} (${map.via}).`,
       `Your env vars are unchanged placeholders; the site proxy now injects real credentials for: ${cap === "database" ? "$NEON_FETCH_ENDPOINT" : cap === "email" ? "$RESEND_BASE_URL/emails" : "$STRIPE_API_BASE/v1/*"}.`,

@@ -58,7 +58,7 @@
       </div>
     </div>
     <div class="grid2 mt">
-      <div class="panel"><h2>Requisitions · Stripe Projects</h2><div id="reqs"><div class="m" style="color:var(--dim)">none yet</div></div></div>
+      <div class="panel"><h2>Requisitions · Stripe Projects</h2><div id="guard" style="color:var(--dim);font-size:12px;margin-bottom:8px">guardrails: –</div><div id="reqs"><div class="m" style="color:var(--dim)">none yet</div></div></div>
       <div class="panel"><h2>Settlement</h2><div class="money" id="captured">$0.00</div><div class="m" id="pi" style="color:var(--dim)">no PaymentIntent yet</div><div class="checks" id="checks"></div></div>
     </div>
     <div class="panel mt"><h2>The 5 sandbox questions</h2>
@@ -111,8 +111,21 @@ function apply(e) {
   if (e.kind === "app.live") { $("pi").innerHTML += ` · <a href="${d.url}" target="_blank">live app ↗</a>`; $("n-agent-m").innerHTML = `serving <a href="${d.url}" target="_blank">live</a> · egress proxy-only`; }
   if (e.kind === "perimeter.probe") { $("k-keys").textContent = d.real_keys_in_env; $("q1").textContent = `real keys in env: ${d.real_keys_in_env} · internet: ${d.internet === "200" ? "OPEN" : "blocked"} · proxy: ${d.proxy}`; }
   if (e.kind === "proxy.capability") document.querySelector(`.pill[data-c="${d.capability}"]`)?.classList.add("on");
-  if (e.kind === "requisition.quote") { const el = $("reqs"); if (el.querySelector(".m")) el.innerHTML = ""; const r = document.createElement("div"); r.className = "req"; r.id = "r-" + d.reqId; r.innerHTML = `<b>${d.capability}</b> → ${d.provider}/${d.service} · ${d.tier} · $${d.priceUsd}<br><code></code><div class="st" style="color:var(--dim)">quoted</div>`; r.querySelector("code").textContent = d.command; el.appendChild(r); }
-  if (e.kind.startsWith("requisition.") && d.reqId) { const st = document.querySelector(`#r-${CSS.escape(d.reqId)} .st`); if (st) st.textContent = e.kind.replace("requisition.", "") + (d.by ? ` by ${d.by}` : "") + (d.note ? ` · ${d.note}` : "") + (d.reason ? ` · ${d.reason}` : ""); }
+  if (e.kind === "projects.guardrails") { $("guard").textContent = "Stripe Projects caps: " + Object.entries(d.providerCaps || {}).map(([p, v]) => `${p} ${v}`).join(" · ") + ` · tiers ${d.tiers}`; }
+  if (e.kind === "projects.spend") { $("guard").textContent += ` · spend $${(d.totalUsd || 0).toFixed(2)}`; }
+  if (e.kind === "requisition.filed") {
+    const el = $("reqs"); if (el.querySelector(".m")) el.innerHTML = "";
+    const r = document.createElement("div"); r.className = "req"; r.id = "r-" + d.reqId;
+    r.innerHTML = `<b></b> <span class="who" style="color:var(--dim)"></span><br><code></code><div class="st" style="color:var(--dim)">filed</div>`;
+    r.querySelector("b").textContent = d.capability; r.querySelector(".who").textContent = "· " + (d.reason || "").slice(0, 90);
+    el.appendChild(r);
+  }
+  if (e.kind === "requisition.quote") { const r = document.getElementById("r-" + d.reqId); if (r) { r.querySelector(".who").textContent = `→ ${d.provider}/${d.service} · ${d.tier} · $${d.priceUsd}`; r.querySelector("code").textContent = d.command; } }
+  if (e.kind === "requisition.denied") { const r = document.getElementById("r-" + d.reqId); if (r) { r.style.borderColor = "var(--bad)"; r.style.background = "#1d0f10"; } }
+  if (e.kind.startsWith("requisition.") && d.reqId && e.kind !== "requisition.filed") {
+    const st = document.querySelector(`#r-${CSS.escape(d.reqId)} .st`);
+    if (st) st.textContent = e.kind === "requisition.receipt" ? `receipt ${d.ok ? "✓" : "✗"} · inspection HTTP ${d.httpStatus} through the perimeter` : e.kind.replace("requisition.", "") + (d.by ? ` by ${d.by}` : "") + (d.note ? ` · ${d.note}` : "") + (d.reason ? ` · ${d.reason}` : "");
+  }
   if (e.kind === "stripe.authorized") { $("k-pay").textContent = "held"; $("k-pay-s").textContent = d.paymentIntent + " · requires_capture"; $("pi").textContent = `${d.paymentIntent} · ${fmt$(d.amount)} authorized · ${fmt$(d.amount_received)} charged`; }
   if (e.kind === "stripe.captured") { $("k-pay").textContent = fmt$(d.amount_received); $("k-pay-s").textContent = "succeeded · captured"; $("captured").textContent = fmt$(d.amount_received); $("pi").textContent = `${d.paymentIntent} · succeeded`; }
   if (e.kind === "stripe.released") { $("k-pay").textContent = "$0"; $("k-pay-s").textContent = "canceled · hold released"; $("captured").textContent = "$0.00"; $("pi").textContent = `${d.paymentIntent} · canceled (${d.reason})`; }

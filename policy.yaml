@@ -7,6 +7,8 @@ requisitions:
   allowed_providers: [neon, resend, stripe]
   tiers: free_only                   # paid tiers are denied (paid Projects tiers are unavailable in this region anyway)
   needs_human_approval: [new_provider, paid_tier, remove, rotate]
+spend:
+  provider_caps_usd: { neon: 5, resend: 5, createos: 5 }   # applied via `stripe projects billing update` before the agent runs
 settlement:
   price_usd: 49
   critical_checks: [C1_webhook_signature_enforced, C2_exactly_once_fulfilment, C3_no_secret_in_output]
