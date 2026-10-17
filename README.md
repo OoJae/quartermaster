@@ -8,6 +8,8 @@
 
 Built at the CreateOS × Stripe Projects hackathon (Oct 17 2026). It started from an empty directory (`stripe projects pull` of the stack provisioned during pre-event setup, then the code written on the day).
 
+**Latest verified run:** `job-mvcw7ynr`: 3 requisitions via Stripe Projects (Resend provisioned live), 3 receipts HTTP 200 through the perimeter, hidden checks 3/3 critical + 7/7, **$49.00 captured** (`pi_3UReuUCo4MTnGWoJ1XUhhjS1`), stack spend $0.00. ▶ [Watch it in the dashboard](https://oojae.github.io/quartermaster/dashboard.html?replay=job-mvcw7ynr&speed=30) · [Run Card](https://oojae.github.io/quartermaster/run.html?job=job-mvcw7ynr) · [Live app](https://01m55vc21sq5pjf40qp3848r1n-3000.app.sb.createos.sh/waitlist/judge%40example.com)
+
 ## What happens in one job
 
 1. **The client authorizes $49 (not charged).** The PaymentIntent is created with `capture_method=manual`. Its metadata pins the SHA-256 of the hidden grader pack, the task and the policy *before the agent starts*, so Stripe's timestamp proves the tests predate the work.

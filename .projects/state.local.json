@@ -105,6 +105,18 @@
       "resourceId": "fres_61VaXbpdKLI131fEu16VaNTrMNSQHGMziMBcBNGj2OKe",
       "serviceId": "postgres"
     },
+    "resend-email": {
+      "configuration": {},
+      "createdAt": "2026-10-17T21:24:49.654Z",
+      "lastRevealedAt": "2026-10-17T21:24:50.367Z",
+      "lastStatus": "complete",
+      "livemode": true,
+      "name": "resend-email",
+      "providerId": "prvdr_61VFXTzsszWb1r1S25KMa",
+      "providerName": "Resend",
+      "resourceId": "fres_61Vb33IA0QuAeq2e816VaNTrMNSQHGMziMBcBNGj2Dbc",
+      "serviceId": "email"
+    },
     "resend-plan": {
       "configuration": {},
       "createdAt": "2026-10-16T11:51:45.341Z",
