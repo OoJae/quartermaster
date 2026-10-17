@@ -148,7 +148,7 @@ async function replay(job, speed) {
     addEvent(e);
   }
 }
-if (qp.get("replay")) { loadJobs().then(() => { $("jobs").value = qp.get("replay"); replay(qp.get("replay"), Number(qp.get("speed") || 20)); }); }
+if (qp.get("replay")) { current = qp.get("replay"); loadJobs().then(() => { $("jobs").value = qp.get("replay"); replay(qp.get("replay"), Number(qp.get("speed") || 20)); }); }
 else loadJobs();
 </script>
 </body>
