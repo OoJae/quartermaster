@@ -57,5 +57,69 @@
       "providerName": "Vercel",
       "serviceId": "hobby"
     }
+  },
+  "environments": {
+    "default": {
+      "output": ".env",
+      "resources": [
+        {
+          "resourceName": "createos-plan"
+        },
+        {
+          "resourceName": "createos-project"
+        },
+        {
+          "resourceName": "neon-plan"
+        },
+        {
+          "resourceName": "neon-postgres"
+        },
+        {
+          "resourceName": "resend-email"
+        },
+        {
+          "resourceName": "resend-plan"
+        },
+        {
+          "resourceName": "vercel-plan"
+        }
+      ],
+      "variables": [
+        {
+          "variableName": "agent-llm-base-url",
+          "envKey": "AGENT_BASE_URL"
+        },
+        {
+          "variableName": "agent-llm-key",
+          "envKey": "AGENT_API_KEY"
+        },
+        {
+          "variableName": "agent-llm-model",
+          "envKey": "AGENT_MODEL"
+        },
+        {
+          "variableName": "stripe-test-key",
+          "envKey": "STRIPE_TEST_SECRET_KEY"
+        }
+      ]
+    }
+  },
+  "variables": {
+    "agent-llm-base-url": {
+      "name": "agent-llm-base-url",
+      "backendId": "fprjvar_61Vb2666YK6LSMXZX16VaNTrMNSQHGMziMBcBNGj2J9k"
+    },
+    "agent-llm-key": {
+      "name": "agent-llm-key",
+      "backendId": "fprjvar_61Vb262lST7dTn2iH16VaNTrMNSQHGMziMBcBNGj2Cgq"
+    },
+    "agent-llm-model": {
+      "name": "agent-llm-model",
+      "backendId": "fprjvar_61Vb26AWSeQ811WkL16VaNTrMNSQHGMziMBcBNGj2X0K"
+    },
+    "stripe-test-key": {
+      "name": "stripe-test-key",
+      "backendId": "fprjvar_61Vb26E2YCVJXgqZ516VaNTrMNSQHGMziMBcBNGj27EO"
+    }
   }
 }

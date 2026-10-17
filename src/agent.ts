@@ -7,7 +7,6 @@ import type { Broker } from "./requisition.js";
 import { stripeCli } from "./stripecli.js";
 import { TASK } from "./task.js";
 
-const MODEL = process.env.AGENT_MODEL ?? "claude-opus-5-5";
 const EFFORT = (process.env.AGENT_EFFORT ?? "medium") as "low" | "medium" | "high";
 const MAX_STEPS = Number(process.env.AGENT_MAX_STEPS ?? 70);
 
@@ -38,14 +37,16 @@ const tools: Anthropic.Tool[] = [
 const cut = (s: string, n = 6000) => (s.length > n ? `…[truncated ${s.length - n} chars]…\n` + s.slice(-n) : s);
 
 export async function runAgent(card: RunCard, site: Site, broker: Broker): Promise<{ summary: string; steps: number }> {
-  const client = new Anthropic({ apiKey: env.anthropicKey() });
+  const llm = env.agentLlm();
+  const MODEL = llm.model;
+  const client = new Anthropic({ apiKey: llm.apiKey, ...(llm.baseURL ? { baseURL: llm.baseURL } : {}), maxRetries: 4, timeout: 300_000 });
   const messages: Anthropic.MessageParam[] = [{ role: "user", content: TASK }];
-  card.add("agent.start", { model: MODEL, effort: EFFORT, task: TASK.split("\n")[0] });
+  card.add("agent.start", { model: MODEL, endpoint: llm.custom ? "anthropic-compatible" : "anthropic", effort: llm.custom ? "provider default" : EFFORT, task: TASK.split("\n")[0] });
 
   for (let step = 1; step <= MAX_STEPS; step++) {
     const response = await client.messages.create({
       model: MODEL, max_tokens: 16000, system: SYSTEM, tools, messages,
-      output_config: { effort: EFFORT },
+      ...(llm.custom ? {} : { output_config: { effort: EFFORT } }),
     } as any);
     messages.push({ role: "assistant", content: response.content });
     const text = response.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("\n").trim();

@@ -17,6 +17,12 @@ export const env = {
   neonConn: () => opt("NEON_POSTGRES_CONNECTION_STRING"),
   resendKey: () => opt("RESEND_API_KEY"),
   anthropicKey: () => need("ANTHROPIC_API_KEY"),
+  /** The agent's model endpoint: Claude by default; any Anthropic-protocol endpoint via AGENT_BASE_URL/AGENT_API_KEY/AGENT_MODEL. */
+  agentLlm: () => {
+    const base = opt("AGENT_BASE_URL");
+    if (base) return { baseURL: base, apiKey: need("AGENT_API_KEY"), model: opt("AGENT_MODEL") ?? "mimo-v2.6-pro", custom: true };
+    return { baseURL: undefined, apiKey: need("ANTHROPIC_API_KEY"), model: opt("AGENT_MODEL") ?? "claude-opus-5-5", custom: false };
+  },
   stripeTestKey: () => need("STRIPE_TEST_SECRET_KEY"),
   port: Number(process.env.PORT ?? 4747),
 };

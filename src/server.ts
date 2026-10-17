@@ -4,6 +4,8 @@ import { env } from "./env.js";
 import { bus, readRun, verifyChain, type RunEvent } from "./runcard.js";
 import { approvals } from "./requisition.js";
 import { runJob } from "./job.js";
+import { reloadEnv } from "./stripecli.js";
+reloadEnv(); // register every secret in .env for fail-closed scrubbing
 
 const app = express();
 app.use(express.json());

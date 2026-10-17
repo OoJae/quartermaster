@@ -141,5 +141,13 @@
       "resourceId": "fres_61VaXdi1q2lheOE9216VaNTrMNSQHGMziMBcBNGj2BmK",
       "serviceId": "hobby"
     }
+  },
+  "managedProjectVariableEnvKeys": {
+    ".env": [
+      "AGENT_API_KEY",
+      "AGENT_BASE_URL",
+      "AGENT_MODEL",
+      "STRIPE_TEST_SECRET_KEY"
+    ]
   }
 }
