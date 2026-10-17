@@ -6,7 +6,7 @@ import { Broker } from "./requisition.js";
 import { runAgent } from "./agent.js";
 import { ensureOperatorBase, prepareVerifier, runVerifier, graderPackSha } from "./verifier.js";
 import { authorize, settle } from "./settle.js";
-import { cos, sh, destroyQuietly } from "./createos.js";
+import { cos, sh, destroyQuietly, reapSites } from "./createos.js";
 import { TASK } from "./task.js";
 
 const sha = (s: string | Buffer) => createHash("sha256").update(s).digest("hex");
@@ -26,6 +26,8 @@ export async function runJob(jobId: string, opts: JobOptions = {}) {
       policy_sha256: sha(readFileSync("policy.yaml")),
     };
     card.add("job.start", { job: jobId, pins });
+    const reaped = await reapSites();
+    if (reaped.length) card.add("site.reap_previous", { destroyed: reaped });
 
     // 1. client authorizes (not pays) $49; Stripe's timestamp witnesses the pins
     const pi = await authorize(card, pins);
@@ -64,8 +66,18 @@ export async function runJob(jobId: string, opts: JobOptions = {}) {
     // 8. settle: capture for verified work, release the hold otherwise
     const result = await settle(card, pi.id, verdict, { verdictSha256, runCardHead: card.head, hygieneOk: orphans.length === 0 });
 
-    card.add("job.done", { seconds: Math.round((Date.now() - t0) / 1000), captured: result.captured, status: result.status, verdict: { criticalPass: verdict.criticalPass, normal: `${verdict.normalPassed}/${verdict.normalTotal}` }, runCardHead: card.head });
-    return { card, result, verdict };
+    // 9. the sandbox becomes deployed infrastructure: keep the verified build running behind CreateOS ingress
+    let liveUrl: string | undefined;
+    if (opts.keepSite && result.captured > 0) {
+      await site.agent.processes.create({ cmd: "bash", args: ["-lc", "cd /workspace/app && npm start > /tmp/live.log 2>&1"] });
+      await site.agent.setIngress(true);
+      await site.agent.waitForPortReady(3000, { timeoutMs: 45_000 }).catch(() => {});
+      liveUrl = site.agent.previewUrl(3000);
+      card.add("app.live", { url: liveUrl, note: "verified build running in its microVM behind CreateOS ingress; still keyless, egress still proxy-only" });
+    }
+
+    card.add("job.done", { seconds: Math.round((Date.now() - t0) / 1000), captured: result.captured, status: result.status, verdict: { criticalPass: verdict.criticalPass, normal: `${verdict.normalPassed}/${verdict.normalTotal}` }, runCardHead: card.head, liveUrl });
+    return { card, result, verdict, liveUrl };
   } catch (e: any) {
     card.add("job.error", { message: String(e?.message ?? e) });
     throw e;

@@ -47,3 +47,12 @@ export async function reap(keepIds: string[] = []) {
   for (const b of live) await destroyQuietly(b);
   return live.map((b) => b.toJSON().name ?? b.id);
 }
+
+/** Remove sites kept live by earlier jobs (qp-/qa- sandboxes, qn- networks) so a new job fits the plan's slot cap. */
+export async function reapSites(): Promise<string[]> {
+  const all = await cos.listSandboxes({ limit: 100 });
+  const old = all.filter((b) => /^(qp|qa)-/.test(b.toJSON().name ?? "") && !["destroyed", "destroying", "failed"].includes(b.toJSON().status));
+  for (const b of old) await destroyQuietly(b);
+  for (const n of await cos.networks.list()) if (n.name.startsWith("qn-")) await cos.networks.delete(n.id).catch(() => {});
+  return old.map((b) => b.toJSON().name ?? b.id);
+}
