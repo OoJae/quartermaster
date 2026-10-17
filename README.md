@@ -4,6 +4,8 @@
 
 > Code generation became free. Proof didn't. Quartermaster makes the proof the invoice.
 
+![Quartermaster dashboard: a real run. 0 keys held by the agent, 1 reachable host (the proxy), 3 requisitions via Stripe Projects, hidden checks 3/3 critical + 7/7, $49.00 captured, verified app live on CreateOS](docs/dashboard.png)
+
 Built at the CreateOS × Stripe Projects hackathon (Oct 17 2026). It started from an empty directory (`stripe projects pull` of the stack provisioned during pre-event setup, then the code written on the day).
 
 ## What happens in one job
