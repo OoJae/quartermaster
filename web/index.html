@@ -144,24 +144,28 @@ function apply(e) {
     $("checks").innerHTML = Object.entries({ ...d.critical, ...d.normal }).map(([k, v]) => `<span class="${v ? "p" : "f"}">${k.split("_")[0]} ${k.split("_").slice(1).join(" ")}</span>`).join("");
   }
 }
+const STATIC = !!window.QM_STATIC;
+async function staticEvents(job) { return (await (await fetch("runs/" + encodeURIComponent(job) + ".json")).json()).events; }
 function watch(job) {
   current = job; $("timeline").innerHTML = ""; if (es) es.close();
+  if (STATIC) { staticEvents(job).then((evs) => evs.forEach(addEvent)); return; }
   es = new EventSource("/api/events?job=" + encodeURIComponent(job));
   es.onmessage = (m) => addEvent(JSON.parse(m.data));
 }
 async function loadJobs(select) {
-  const jobs = await (await fetch("/api/jobs")).json();
+  const jobs = await (await fetch(STATIC ? "runs/index.json" : "/api/jobs")).json();
   $("jobs").innerHTML = jobs.map((j) => `<option value="${j.job}">${j.job} · ${j.status}${j.captured != null ? " · " + fmt$(j.captured) : ""}</option>`).join("");
   if (select) { $("jobs").value = select; watch(select); } else if (jobs[0] && !current) watch(jobs[0].job);
 }
 $("jobs").onchange = (e) => watch(e.target.value);
 $("start").onclick = async () => { const r = await (await fetch("/api/jobs", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ keepSite: true }) })).json(); await loadJobs(r.job); };
-$("open").onclick = () => current && window.open("/run/" + current, "_blank");
+$("open").onclick = () => current && window.open(STATIC ? "run.html?job=" + current : "/run/" + current, "_blank");
+if (STATIC) { $("start").textContent = "Replay ▶"; $("start").onclick = () => current && replay(current, 30); }
 // Replay mode: ?replay=<job>&speed=20 plays a real recorded run as a time-lapse (gaps compressed, capped at 1.2s).
 const qp = new URLSearchParams(location.search);
 async function replay(job, speed) {
   current = job; $("timeline").innerHTML = "";
-  const { events } = await (await fetch("/api/runs/" + encodeURIComponent(job))).json();
+  const events = STATIC ? await staticEvents(job) : (await (await fetch("/api/runs/" + encodeURIComponent(job))).json()).events;
   let prev = events.length ? Date.parse(events[0].ts) : 0;
   for (const e of events) {
     const gap = Math.min((Date.parse(e.ts) - prev) / speed, 1200);

@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quartermaster</title>
+<style>
+  :root { --bg:#0b0d12; --panel:#12151c; --line:#232836; --text:#e7e9ee; --dim:#8b93a7; --ok:#3ddc97; --warn:#f5b84b; --bad:#ff6b6b; --acc:#7c9cff; --money:#c3a6ff; }
+  * { box-sizing:border-box } body { margin:0; background:var(--bg); color:var(--text); font:14px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto }
+  header { display:flex; align-items:center; gap:16px; padding:14px 22px; border-bottom:1px solid var(--line) }
+  header h1 { margin:0; font-size:18px; letter-spacing:.3px } header .tag { color:var(--dim) } header .sp { flex:1 }
+  button { background:var(--acc); color:#0b0d12; border:0; border-radius:8px; padding:9px 14px; font-weight:600; cursor:pointer } button.ghost { background:transparent; color:var(--text); border:1px solid var(--line) }
+  select { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:8px }
+  .kpis { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; padding:16px 22px }
+  .kpi { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px } .kpi .l { color:var(--dim); font-size:12px; text-transform:uppercase; letter-spacing:.6px } .kpi .v { font-size:22px; font-weight:700; margin-top:4px } .kpi .s { color:var(--dim); font-size:12px; margin-top:2px; word-break:break-all }
+  main { display:grid; grid-template-columns:1.25fr 1fr; gap:16px; padding:0 22px 22px }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; min-height:120px } .panel h2 { margin:0 0 10px; font-size:13px; color:var(--dim); text-transform:uppercase; letter-spacing:.7px }
+  #timeline { max-height:62vh; overflow:auto; font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace }
+  .ev { display:grid; grid-template-columns:52px 170px 1fr; gap:8px; padding:5px 4px; border-bottom:1px dashed #1b2030 } .ev .t { color:var(--dim) } .ev .k { font-weight:600 } .ev .d { color:#c9cfdb; white-space:pre-wrap; word-break:break-word }
+  .k-stripe { color:var(--money) } .k-perimeter, .k-verifier { color:var(--ok) } .k-requisition { color:var(--warn) } .k-tool, .k-agent { color:var(--acc) } .k-job { color:#fff } .k-error { color:var(--bad) }
+  .map { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; align-items:stretch }
+  .node { border:1px solid var(--line); border-radius:10px; padding:10px; background:#0f1219 } .node b { display:block; margin-bottom:4px } .node .m { color:var(--dim); font-size:12px }
+  .node.live { border-color:#2f4a8a } .node.ok { border-color:#1f6f4f } .pill { display:inline-block; padding:2px 8px; border-radius:99px; font-size:11px; margin:2px 4px 0 0; border:1px solid var(--line); color:var(--dim) } .pill.on { color:#0b0d12; background:var(--ok); border-color:var(--ok) }
+  .q { display:grid; grid-template-columns:1.1fr 1fr; gap:6px 10px; font-size:13px } .q div:nth-child(odd) { color:var(--dim) }
+  .req { border:1px solid #4a3d1d; background:#17140c; border-radius:10px; padding:10px; margin-bottom:8px; font-size:12.5px } .req code { color:var(--warn) }
+  .money { font-size:28px; font-weight:800; color:var(--money) } .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px } .mt { margin-top:16px }
+  .checks span { display:inline-block; margin:3px 6px 0 0; padding:3px 8px; border-radius:6px; font-size:12px; background:#1a1f2b } .checks .p { background:#123a2a; color:var(--ok) } .checks .f { background:#3a1616; color:var(--bad) }
+  a { color:var(--acc) }
+</style>
+</head>
+<body>
+<header>
+  <h1>Quartermaster</h1>
+  <span class="tag">Hire a coding agent like a contractor: it never holds your keys, and it only gets paid for work it can't fake.</span>
+  <span class="sp"></span>
+  <select id="jobs"></select>
+  <button class="ghost" id="open">Run Card</button>
+  <button id="start">Start job ($49 authorized)</button>
+</header>
+
+<section class="kpis">
+  <div class="kpi"><div class="l">Keys held by agent</div><div class="v" id="k-keys">–</div><div class="s">real secrets live only in the proxy</div></div>
+  <div class="kpi"><div class="l">Reachable from agent</div><div class="v" id="k-reach">–</div><div class="s" id="k-reach-s">egress allowlist</div></div>
+  <div class="kpi"><div class="l">Payment</div><div class="v" id="k-pay">–</div><div class="s" id="k-pay-s">manual capture</div></div>
+  <div class="kpi"><div class="l">Hidden checks</div><div class="v" id="k-verdict">–</div><div class="s" id="k-verdict-s">critical · normal</div></div>
+  <div class="kpi"><div class="l">Verifier fork</div><div class="v" id="k-fork">–</div><div class="s">from sealed operator base</div></div>
+  <div class="kpi"><div class="l">Run Card</div><div class="v" id="k-chain">–</div><div class="s" id="k-head">hash chain</div></div>
+</section>
+
+<main>
+  <div class="panel"><h2>Live run</h2><div id="timeline"></div></div>
+  <div>
+    <div class="panel"><h2>Site map</h2>
+      <div class="map">
+        <div class="node" id="n-agent"><b>Agent VM</b><div class="m" id="n-agent-m">keyless · sentinels only</div></div>
+        <div class="node" id="n-proxy"><b>Credential proxy</b><div class="m" id="n-proxy-m">holds real secrets</div><div id="caps"><span class="pill" data-c="database">Neon</span><span class="pill" data-c="email">Resend</span><span class="pill" data-c="payments">Stripe</span></div></div>
+        <div class="node" id="n-ver"><b>Verifier</b><div class="m" id="n-ver-m">fork of sealed base · no network</div></div>
+      </div>
+    </div>
+    <div class="grid2 mt">
+      <div class="panel"><h2>Requisitions · Stripe Projects</h2><div id="guard" style="color:var(--dim);font-size:12px;margin-bottom:8px">guardrails: –</div><div id="reqs"><div class="m" style="color:var(--dim)">none yet</div></div></div>
+      <div class="panel"><h2>Settlement</h2><div class="money" id="captured">$0.00</div><div class="m" id="pi" style="color:var(--dim)">no PaymentIntent yet</div><div class="checks" id="checks"></div></div>
+    </div>
+    <div class="panel mt"><h2>The 5 sandbox questions</h2>
+      <div class="q">
+        <div>What can the process read?</div><div id="q1">/workspace + placeholder env</div>
+        <div>Network off per run?</div><div id="q2">–</div>
+        <div>CPU / memory / time limits?</div><div id="q3">2 vCPU · 4 GB · 300 s/command · auto-pause</div>
+        <div>What do you get back on failure?</div><div id="q4">host-authored Run Card, replayable</div>
+        <div>Credentials scoped to the run?</div><div id="q5">–</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>window.QM_STATIC = true;</script>
+<script>
+const $ = (id) => document.getElementById(id);
+let es, current;
+const fmt$ = (c) => "$" + (c / 100).toFixed(2);
+const short = (h) => (h || "").slice(0, 12);
+
+function kindClass(k) { const p = k.split(".")[0]; return "k-" + (k.includes("error") || k.includes("denied") ? "error" : p); }
+function summarize(e) {
+  const d = e.data || {};
+  switch (e.kind) {
+    case "tool.write_file": return `write ${d.path} (${d.bytes} bytes)`;
+    case "tool.run_command": return `$ ${d.cmd}`;
+    case "tool.result": return `${d.tool}: ${(d.result || "").slice(0, 300)}`;
+    case "agent.say": return d.text;
+    case "requisition.quote": return `${d.capability} -> ${d.provider}/${d.service} (${d.tier}, $${d.priceUsd})  ${d.command}`;
+    case "stripe.authorized": return `${d.paymentIntent} ${d.status} ${fmt$(d.amount)} authorized, ${fmt$(d.amount_received)} received`;
+    case "stripe.captured": return `${d.paymentIntent} ${d.status}: captured ${fmt$(d.amount_received)} of ${fmt$(d.of)}`;
+    case "stripe.released": return `${d.paymentIntent} ${d.status}: hold released (${d.reason})`;
+    default: return JSON.stringify(d).slice(0, 400);
+  }
+}
+function addEvent(e) {
+  const row = document.createElement("div"); row.className = "ev";
+  row.innerHTML = `<div class="t">#${e.seq}</div><div class="k ${kindClass(e.kind)}">${e.kind}</div><div class="d"></div>`;
+  row.querySelector(".d").textContent = summarize(e);
+  const tl = $("timeline"); tl.appendChild(row); tl.scrollTop = tl.scrollHeight;
+  apply(e);
+}
+function apply(e) {
+  const d = e.data || {};
+  $("k-chain").textContent = "#" + e.seq; $("k-head").textContent = "head " + short(e.hash);
+  if (e.kind === "vm.create" && d.role === "agent") { $("k-keys").textContent = d.keysHeld ?? 0; $("k-reach").textContent = "1 host"; $("k-reach-s").textContent = (d.egress || []).join(", ") + " (proxy only)"; $("n-agent").classList.add("live"); $("n-agent-m").textContent = "egress " + (d.egress || []).join(", "); $("q2").textContent = "yes: allowlist = proxy IP only"; $("q5").textContent = "never in the agent VM; proxy injects per route"; }
+  if (e.kind === "vm.create" && d.role === "credential-proxy") { $("n-proxy").classList.add("live"); $("n-proxy-m").textContent = "private IP " + d.privateIp; }
+  if (e.kind === "agent.start") { $("n-agent-m").textContent = `${d.model} · ` + $("n-agent-m").textContent; }
+  if (e.kind === "agent.done") { $("n-agent").classList.add("ok"); }
+  if (e.kind === "app.live") { $("pi").innerHTML += ` · <a href="${d.url}" target="_blank">live app ↗</a>`; $("n-agent-m").innerHTML = `serving <a href="${d.url}" target="_blank">live</a> · egress proxy-only`; }
+  if (e.kind === "perimeter.probe") { $("k-keys").textContent = d.real_keys_in_env; $("q1").textContent = `real keys in env: ${d.real_keys_in_env} · internet: ${d.internet === "200" ? "OPEN" : "blocked"} · proxy: ${d.proxy}`; }
+  if (e.kind === "proxy.capability") document.querySelector(`.pill[data-c="${d.capability}"]`)?.classList.add("on");
+  if (e.kind === "projects.guardrails") { $("guard").textContent = "Stripe Projects caps: " + Object.entries(d.providerCaps || {}).map(([p, v]) => `${p} ${v}`).join(" · ") + ` · tiers ${d.tiers}`; }
+  if (e.kind === "projects.spend") { $("guard").textContent += ` · spend $${(d.totalUsd || 0).toFixed(2)}`; }
+  if (e.kind === "requisition.filed") {
+    const el = $("reqs"); if (el.querySelector(".m")) el.innerHTML = "";
+    const r = document.createElement("div"); r.className = "req"; r.id = "r-" + d.reqId;
+    r.innerHTML = `<b></b> <span class="who" style="color:var(--dim)"></span><br><code></code><div class="st" style="color:var(--dim)">filed</div>`;
+    r.querySelector("b").textContent = d.capability; r.querySelector(".who").textContent = "· " + (d.reason || "").slice(0, 90);
+    el.appendChild(r);
+  }
+  if (e.kind === "requisition.quote") { const r = document.getElementById("r-" + d.reqId); if (r) { r.querySelector(".who").textContent = `→ ${d.provider}/${d.service} · ${d.tier} · $${d.priceUsd}`; r.querySelector("code").textContent = d.command; } }
+  if (e.kind === "requisition.awaiting_approval") {
+    const r = document.getElementById("r-" + d.reqId);
+    if (r && !r.querySelector(".appr")) {
+      const box = document.createElement("div"); box.className = "appr"; box.style.marginTop = "6px";
+      box.innerHTML = `<button data-v="approve">Approve</button> <button class="ghost" data-v="deny">Deny</button>`;
+      box.querySelectorAll("button").forEach((b) => (b.onclick = async () => { await fetch(`/api/requisitions/${encodeURIComponent(d.reqId)}/${b.dataset.v}`, { method: "POST" }); box.textContent = b.dataset.v === "approve" ? "approved by you" : "denied by you"; }));
+      r.appendChild(box);
+    }
+  }
+  if (e.kind === "requisition.denied") { const r = document.getElementById("r-" + d.reqId); if (r) { r.style.borderColor = "var(--bad)"; r.style.background = "#1d0f10"; } }
+  if (e.kind.startsWith("requisition.") && d.reqId && e.kind !== "requisition.filed") {
+    const st = document.querySelector(`#r-${CSS.escape(d.reqId)} .st`);
+    if (st) st.textContent = e.kind === "requisition.receipt" ? `receipt ${d.ok ? "✓" : "✗"} · inspection HTTP ${d.httpStatus} through the perimeter` : e.kind.replace("requisition.", "") + (d.by ? ` by ${d.by}` : "") + (d.note ? ` · ${d.note}` : "") + (d.reason ? ` · ${d.reason}` : "");
+  }
+  if (e.kind === "stripe.authorized") { $("k-pay").textContent = "held"; $("k-pay-s").textContent = d.paymentIntent + " · requires_capture"; $("pi").textContent = `${d.paymentIntent} · ${fmt$(d.amount)} authorized · ${fmt$(d.amount_received)} charged`; }
+  if (e.kind === "stripe.captured") { $("k-pay").textContent = fmt$(d.amount_received); $("k-pay-s").textContent = "succeeded · captured"; $("captured").textContent = fmt$(d.amount_received); $("pi").textContent = `${d.paymentIntent} · succeeded`; }
+  if (e.kind === "stripe.released") { $("k-pay").textContent = "$0"; $("k-pay-s").textContent = "canceled · hold released"; $("captured").textContent = "$0.00"; $("pi").textContent = `${d.paymentIntent} · canceled (${d.reason})`; }
+  if (e.kind === "verifier.fork") { $("k-fork").textContent = (d.forkMs / 1000).toFixed(1) + "s"; $("n-ver").classList.add("ok"); $("n-ver-m").textContent = "fork " + d.id.slice(-6) + " · no network"; }
+  if (e.kind === "verifier.verdict") {
+    $("k-verdict").textContent = `${d.criticalPass ? "✓" : "✗"} · ${d.normalPassed}/${d.normalTotal}`;
+    $("checks").innerHTML = Object.entries({ ...d.critical, ...d.normal }).map(([k, v]) => `<span class="${v ? "p" : "f"}">${k.split("_")[0]} ${k.split("_").slice(1).join(" ")}</span>`).join("");
+  }
+}
+const STATIC = !!window.QM_STATIC;
+async function staticEvents(job) { return (await (await fetch("runs/" + encodeURIComponent(job) + ".json")).json()).events; }
+function watch(job) {
+  current = job; $("timeline").innerHTML = ""; if (es) es.close();
+  if (STATIC) { staticEvents(job).then((evs) => evs.forEach(addEvent)); return; }
+  es = new EventSource("/api/events?job=" + encodeURIComponent(job));
+  es.onmessage = (m) => addEvent(JSON.parse(m.data));
+}
+async function loadJobs(select) {
+  const jobs = await (await fetch(STATIC ? "runs/index.json" : "/api/jobs")).json();
+  $("jobs").innerHTML = jobs.map((j) => `<option value="${j.job}">${j.job} · ${j.status}${j.captured != null ? " · " + fmt$(j.captured) : ""}</option>`).join("");
+  if (select) { $("jobs").value = select; watch(select); } else if (jobs[0] && !current) watch(jobs[0].job);
+}
+$("jobs").onchange = (e) => watch(e.target.value);
+$("start").onclick = async () => { const r = await (await fetch("/api/jobs", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ keepSite: true }) })).json(); await loadJobs(r.job); };
+$("open").onclick = () => current && window.open(STATIC ? "run.html?job=" + current : "/run/" + current, "_blank");
+if (STATIC) { $("start").textContent = "Replay ▶"; $("start").onclick = () => current && replay(current, 30); }
+// Replay mode: ?replay=<job>&speed=20 plays a real recorded run as a time-lapse (gaps compressed, capped at 1.2s).
+const qp = new URLSearchParams(location.search);
+async function replay(job, speed) {
+  current = job; $("timeline").innerHTML = "";
+  const events = STATIC ? await staticEvents(job) : (await (await fetch("/api/runs/" + encodeURIComponent(job))).json()).events;
+  let prev = events.length ? Date.parse(events[0].ts) : 0;
+  for (const e of events) {
+    const gap = Math.min((Date.parse(e.ts) - prev) / speed, 1200);
+    prev = Date.parse(e.ts);
+    await new Promise((r) => setTimeout(r, gap));
+    addEvent(e);
+  }
+}
+if (qp.get("job")) { current = qp.get("job"); loadJobs().then(() => { $("jobs").value = qp.get("job"); watch(qp.get("job")); }); }
+else if (qp.get("replay")) { current = qp.get("replay"); loadJobs().then(() => { $("jobs").value = qp.get("replay"); replay(qp.get("replay"), Number(qp.get("speed") || 20)); }); }
+else loadJobs();
+</script>
+</body>
+</html>
