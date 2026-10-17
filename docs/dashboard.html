@@ -164,6 +164,14 @@ $("open").onclick = () => current && window.open(STATIC ? "run.html?job=" + curr
 if (STATIC) { $("start").textContent = "Replay ▶"; $("start").onclick = () => current && replay(current, 30); }
 // Replay mode: ?replay=<job>&speed=20 plays a real recorded run as a time-lapse (gaps compressed, capped at 1.2s).
 const qp = new URLSearchParams(location.search);
+async function replayRange(job, from, to, durSec) {
+  current = job; $("timeline").innerHTML = "";
+  const events = STATIC ? await staticEvents(job) : (await (await fetch("/api/runs/" + encodeURIComponent(job))).json()).events;
+  for (const e of events) if (e.seq < from) addEvent(e);
+  const slice = events.filter((e) => e.seq >= from && e.seq <= to);
+  const step = (durSec * 1000) / Math.max(slice.length, 1);
+  for (const e of slice) { await new Promise((r) => setTimeout(r, step)); addEvent(e); }
+}
 async function replay(job, speed) {
   current = job; $("timeline").innerHTML = "";
   const events = STATIC ? await staticEvents(job) : (await (await fetch("/api/runs/" + encodeURIComponent(job))).json()).events;
@@ -176,6 +184,7 @@ async function replay(job, speed) {
   }
 }
 if (qp.get("job")) { current = qp.get("job"); loadJobs().then(() => { $("jobs").value = qp.get("job"); watch(qp.get("job")); }); }
+else if (qp.get("replay") && qp.get("from")) { current = qp.get("replay"); loadJobs().then(() => { $("jobs").value = qp.get("replay"); replayRange(qp.get("replay"), Number(qp.get("from")), Number(qp.get("to") || 1e9), Number(qp.get("dur") || 10)); }); }
 else if (qp.get("replay")) { current = qp.get("replay"); loadJobs().then(() => { $("jobs").value = qp.get("replay"); replay(qp.get("replay"), Number(qp.get("speed") || 20)); }); }
 else loadJobs();
 </script>

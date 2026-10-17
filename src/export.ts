@@ -6,8 +6,10 @@ mkdirSync("docs/runs", { recursive: true });
 copyFileSync("web/run.html", "docs/run.html");
 // public read-only dashboard replay (no broker, no keys): same UI, reads exported Run Cards
 writeFileSync("docs/dashboard.html", readFileSync("web/index.html", "utf8").replace("<script>", "<script>window.QM_STATIC = true;</script>\n<script>"));
+// runs recorded before the verifier PATH fix (app user had no npm): pipeline bug, not evidence about the build
+const HIDDEN = new Set(["job-fixture-good-mvcu5gad"]);
 const index: any[] = [];
-const jobs = (existsSync("runs") ? readdirSync("runs") : []).filter((f) => f.startsWith("job-") && f.endsWith(".jsonl")).map((f) => f.replace(/\.jsonl$/, ""));
+const jobs = (existsSync("runs") ? readdirSync("runs") : []).filter((f) => f.startsWith("job-") && f.endsWith(".jsonl")).map((f) => f.replace(/\.jsonl$/, "")).filter((j) => !HIDDEN.has(j));
 const rows: string[] = [];
 for (const job of jobs.sort().reverse()) {
   const events = readRun(job);
