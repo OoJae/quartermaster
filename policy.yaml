@@ -1,0 +1,16 @@
+# Quartermaster site policy. Enforced deterministically by the host broker (not by the model).
+autonomy: execute_within_perimeter   # watch | suggest | execute_within_perimeter
+environment: development
+requisitions:
+  max_per_job: 3
+  allowed_capabilities: [database, email, payments]
+  allowed_providers: [neon, resend, stripe]
+  tiers: free_only                   # paid tiers are denied (paid Projects tiers are unavailable in this region anyway)
+  needs_human_approval: [new_provider, paid_tier, remove, rotate]
+settlement:
+  price_usd: 49
+  critical_checks: [C1_webhook_signature_enforced, C2_exactly_once_fulfilment, C3_no_secret_in_output]
+  capture: proportional_to_normal_checks
+egress:
+  agent: proxy_only                  # agent VM allowlist = [<proxy private IP>/32]
+  verifier: none                     # forked from the sealed operator base, no network

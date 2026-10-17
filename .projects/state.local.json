@@ -1,0 +1,145 @@
+{
+  "version": 4,
+  "project": {
+    "catalog": "prod",
+    "initializedAt": "2026-10-17T20:00:24.064Z",
+    "merchantDisplayName": null,
+    "merchantId": "acct_1UQzWVCo4MTnGWoJ",
+    "projectId": "project_61VaXYBj0a4evkl1V16VaNTrMNSQHGMziMBcBNGj2Ibg",
+    "projectName": "qm-spike"
+  },
+  "providers": {
+    "createos": {
+      "accountRequestId": "fprvcnn_61VaXZW0DNaxcywBD16VaNTrMNSQHGMziMBcBNGj23j6",
+      "configuration": {},
+      "linkedAt": "2026-10-16T11:47:58.669Z",
+      "providerId": "prvdr_61V0eGC6sUPXoATb051se",
+      "providerName": "createos",
+      "redirectUrl": null,
+      "requestedAt": "2026-10-16T11:47:58.669Z",
+      "status": "complete"
+    },
+    "neon": {
+      "accountRequestId": "fprvcnn_61VaXbM0pAqRxjlpz16VaNTrMNSQHGMziMBcBNGj2I6y",
+      "configuration": {},
+      "linkedAt": "2026-10-16T11:49:52.121Z",
+      "providerId": "prvdr_61UH8uNXFdoJUJOtT54AC",
+      "providerName": "Neon",
+      "redirectUrl": null,
+      "requestedAt": "2026-10-16T11:49:52.121Z",
+      "status": "complete"
+    },
+    "resend": {
+      "accountRequestId": "fprvcnn_61VaXd8N5jmkArVHE16VaNTrMNSQHGMziMBcBNGj24ZE",
+      "configuration": {},
+      "linkedAt": "2026-10-16T11:51:42.843Z",
+      "providerId": "prvdr_61VFXTzsszWb1r1S25KMa",
+      "providerName": "Resend",
+      "redirectUrl": null,
+      "requestedAt": "2026-10-16T11:51:42.843Z",
+      "status": "complete",
+      "providerAccount": {
+        "id": "5902ce6b-f2cc-4b7a-bab2-1108707de352",
+        "display_name": "captainjoe550",
+        "primary_email": "captainjoe550@gmail.com",
+        "link_action": "created"
+      }
+    },
+    "vercel": {
+      "accountRequestId": "fprvcnn_61VaXdfyygTTYQnBv16VaNTrMNSQHGMziMBcBNGj211E",
+      "configuration": {},
+      "linkedAt": "2026-10-16T11:52:15.165Z",
+      "providerId": "prvdr_61ULUAr4zlQgZkvXY5LsG",
+      "providerName": "Vercel",
+      "redirectUrl": null,
+      "requestedAt": "2026-10-16T11:52:15.165Z",
+      "status": "complete"
+    }
+  },
+  "resources": {
+    "createos-plan": {
+      "configuration": {},
+      "createdAt": "2026-10-16T11:48:00.300Z",
+      "lastRevealedAt": null,
+      "lastStatus": "complete",
+      "livemode": true,
+      "name": "createos-plan",
+      "providerId": "prvdr_61V0eGC6sUPXoATb051se",
+      "providerName": "createos",
+      "resourceId": "fres_61VaXZX6RnsnNri1P16VaNTrMNSQHGMziMBcBNGj2XsW",
+      "serviceId": "free"
+    },
+    "createos-project": {
+      "configuration": {},
+      "createdAt": "2026-10-16T11:48:03.330Z",
+      "lastRevealedAt": null,
+      "lastStatus": "complete",
+      "livemode": true,
+      "name": "createos-project",
+      "providerId": "prvdr_61V0eGC6sUPXoATb051se",
+      "providerName": "createos",
+      "resourceId": "fres_61VaXZaIcFOQcGsoR16VaNTrMNSQHGMziMBcBNGj2S2y",
+      "serviceId": "project"
+    },
+    "neon-plan": {
+      "configuration": {},
+      "createdAt": "2026-10-16T11:49:55.764Z",
+      "lastRevealedAt": null,
+      "lastStatus": "complete",
+      "livemode": true,
+      "name": "neon-plan",
+      "providerId": "prvdr_61UH8uNXFdoJUJOtT54AC",
+      "providerName": "Neon",
+      "resourceId": "fres_61VaXbOiPyAljvajB16VaNTrMNSQHGMziMBcBNGj2OP2",
+      "serviceId": "free"
+    },
+    "neon-postgres": {
+      "configuration": {},
+      "createdAt": "2026-10-16T11:50:22.179Z",
+      "lastRevealedAt": "2026-10-17T20:01:10.889Z",
+      "lastStatus": "complete",
+      "livemode": true,
+      "name": "neon-postgres",
+      "providerId": "prvdr_61UH8uNXFdoJUJOtT54AC",
+      "providerName": "Neon",
+      "resourceId": "fres_61VaXbpdKLI131fEu16VaNTrMNSQHGMziMBcBNGj2OKe",
+      "serviceId": "postgres"
+    },
+    "resend-email": {
+      "configuration": {},
+      "createdAt": "2026-10-16T11:51:58.398Z",
+      "lastRevealedAt": null,
+      "lastStatus": "complete",
+      "livemode": true,
+      "name": "resend-email",
+      "providerId": "prvdr_61VFXTzsszWb1r1S25KMa",
+      "providerName": "Resend",
+      "resourceId": "fres_61VaXdNNkhfUWFgBQ16VaNTrMNSQHGMziMBcBNGj22SO",
+      "serviceId": "email"
+    },
+    "resend-plan": {
+      "configuration": {},
+      "createdAt": "2026-10-16T11:51:45.341Z",
+      "lastRevealedAt": null,
+      "lastStatus": "complete",
+      "livemode": true,
+      "name": "resend-plan",
+      "providerId": "prvdr_61VFXTzsszWb1r1S25KMa",
+      "providerName": "Resend",
+      "resourceId": "fres_61VaXdAx6juiM7jBR16VaNTrMNSQHGMziMBcBNGj2DKi",
+      "serviceId": "free"
+    },
+    "vercel-plan": {
+      "configuration": {},
+      "createdAt": "2026-10-16T11:52:19.057Z",
+      "lastRevealedAt": null,
+      "lastStatus": "complete",
+      "livemode": true,
+      "name": "vercel-plan",
+      "providerId": "prvdr_61ULUAr4zlQgZkvXY5LsG",
+      "providerName": "Vercel",
+      "resourceId": "fres_61VaXdi1q2lheOE9216VaNTrMNSQHGMziMBcBNGj2BmK",
+      "serviceId": "hobby"
+    }
+  }
+}
