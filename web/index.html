@@ -121,6 +121,15 @@ function apply(e) {
     el.appendChild(r);
   }
   if (e.kind === "requisition.quote") { const r = document.getElementById("r-" + d.reqId); if (r) { r.querySelector(".who").textContent = `→ ${d.provider}/${d.service} · ${d.tier} · $${d.priceUsd}`; r.querySelector("code").textContent = d.command; } }
+  if (e.kind === "requisition.awaiting_approval") {
+    const r = document.getElementById("r-" + d.reqId);
+    if (r && !r.querySelector(".appr")) {
+      const box = document.createElement("div"); box.className = "appr"; box.style.marginTop = "6px";
+      box.innerHTML = `<button data-v="approve">Approve</button> <button class="ghost" data-v="deny">Deny</button>`;
+      box.querySelectorAll("button").forEach((b) => (b.onclick = async () => { await fetch(`/api/requisitions/${encodeURIComponent(d.reqId)}/${b.dataset.v}`, { method: "POST" }); box.textContent = b.dataset.v === "approve" ? "approved by you" : "denied by you"; }));
+      r.appendChild(box);
+    }
+  }
   if (e.kind === "requisition.denied") { const r = document.getElementById("r-" + d.reqId); if (r) { r.style.borderColor = "var(--bad)"; r.style.background = "#1d0f10"; } }
   if (e.kind.startsWith("requisition.") && d.reqId && e.kind !== "requisition.filed") {
     const st = document.querySelector(`#r-${CSS.escape(d.reqId)} .st`);

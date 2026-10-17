@@ -8,6 +8,8 @@ import { stripeCli, reloadEnv } from "./stripecli.js";
 import { sh } from "./createos.js";
 
 export const policy = parseYaml(readFileSync("policy.yaml", "utf8"));
+// QM_AUTONOMY=suggest makes every requisition wait for a human click in the dashboard (Watch/Suggest/Execute).
+if (process.env.QM_AUTONOMY) policy.autonomy = process.env.QM_AUTONOMY;
 export const approvals = new EventEmitter();
 approvals.setMaxListeners(50);
 

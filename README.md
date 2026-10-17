@@ -63,6 +63,9 @@ Live Run Card gallery: https://oojae.github.io/quartermaster/
 - Managed processes only accept env keys declared at sandbox creation, so the proxy VM is created with placeholders and real values are passed to the process only.
 - Fork of a paused VM → running in ~3–4 s when warm (cold base: ~28 s).
 
+## Autonomy modes
+`policy.yaml` → `autonomy: execute_within_perimeter` auto-approves in-policy, free-tier requisitions. Run with `QM_AUTONOMY=suggest pnpm start` and every requisition pauses with **Approve / Deny** buttons on its dashboard card; the broker provisions only after a human click. Paid tiers and off-allowlist capabilities are always refused (`pnpm tsx src/policydemo.ts`).
+
 ## Stripe Projects build template
 `templates/quartermaster.yaml` is a registry-format manifest (services `createos/project`, `neon/postgres`, `resend/email`, with `tier_plans`), so anyone can `stripe projects build` a keyless CreateOS agent. Daytona and E2B have templates in the registry; CreateOS doesn't yet.
 

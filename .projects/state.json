@@ -39,12 +39,6 @@
       "providerName": "Neon",
       "serviceId": "postgres"
     },
-    "resend-email": {
-      "livemode": true,
-      "name": "resend-email",
-      "providerName": "Resend",
-      "serviceId": "email"
-    },
     "resend-plan": {
       "livemode": true,
       "name": "resend-plan",
@@ -73,9 +67,6 @@
         },
         {
           "resourceName": "neon-postgres"
-        },
-        {
-          "resourceName": "resend-email"
         },
         {
           "resourceName": "resend-plan"
