@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { RunCard } from "./runcard.js";
 import { Site } from "./site.js";
 import { Broker, applyGuardrails, recordSpend } from "./requisition.js";
@@ -55,6 +55,8 @@ export async function runJob(jobId: string, opts: JobOptions = {}) {
     const pack = await sh(site.agent, "cd /workspace && tar --exclude=.git -czf /tmp/app.tgz app && ls -la /tmp/app.tgz", 120_000);
     card.add("job.package", { ok: pack.code === 0, detail: pack.stdout.trim().slice(-200) });
     const tgz = new Uint8Array(await site.agent.files.download("/tmp/app.tgz"));
+    writeFileSync(`runs/${jobId}.tgz`, tgz); // kept so anyone can re-verify this exact build later
+    card.add("job.artifact", { sha256: sha(Buffer.from(tgz)), bytes: tgz.length, path: `runs/${jobId}.tgz` });
 
     // 6. hidden acceptance tests in a fork of the sealed base (not of the agent VM)
     const { fork } = await verifierP;

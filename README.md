@@ -23,7 +23,8 @@ Built at the CreateOS × Stripe Projects hackathon (Oct 17 2026). It started fro
 5. **Settlement:**
    - All 3 critical checks pass (webhook signature, exactly-once fulfilment, no secret in output) → **capture**, proportional to normal checks passed.
    - Otherwise → **cancel**, and the hold is released ($0).
-6. **Run Card:** a host-authored, hash-chained record of every VM, egress rule, tool call, requisition and Stripe event, verifiable in the browser. CreateOS audits only control-plane actions, so in-sandbox activity is recorded here.
+6. **Re-verify (don't trust us):** every paid build is kept. `pnpm tsx src/reverify.ts <job>` (or the button on the local Run Card) forks a fresh verifier from the sealed base, re-runs the hidden checks on that exact artifact, and compares a deterministic checks hash. Demo job `job-mvcv8pwo` reproduced `5b23b8fe2d59fc13…` exactly.
+7. **Run Card:** a host-authored, hash-chained record of every VM, egress rule, tool call, requisition and Stripe event, verifiable in the browser. CreateOS audits only control-plane actions, so in-sandbox activity is recorded here.
 
 ## The 5 sandbox questions, answered by infrastructure (not prompts)
 
@@ -46,6 +47,8 @@ pnpm tsx src/buildbase.ts                # build + seal the operator base (once)
 pnpm start                               # dashboard on http://localhost:4747
 pnpm job                                 # or run one job from the terminal
 pnpm tsx src/verifyfixture.ts buggy      # deterministic "bad build earns $0" demo
+pnpm tsx src/reverify.ts <job>           # re-run the hidden checks on a paid build, compare hashes
+pnpm tsx src/policydemo.ts               # out-of-policy requisitions refused before provisioning
 ```
 Required env (via `stripe projects variables set`): `STRIPE_TEST_SECRET_KEY`, plus either `ANTHROPIC_API_KEY` or `AGENT_BASE_URL` + `AGENT_API_KEY` + `AGENT_MODEL` for any Anthropic-compatible endpoint.
 

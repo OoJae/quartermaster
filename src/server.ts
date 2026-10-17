@@ -4,6 +4,7 @@ import { env } from "./env.js";
 import { readRun, verifyChain } from "./runcard.js";
 import { approvals } from "./requisition.js";
 import { runJob } from "./job.js";
+import { reverify } from "./reverify.js";
 import { reloadEnv } from "./stripecli.js";
 reloadEnv(); // register every secret in .env for fail-closed scrubbing
 
@@ -23,7 +24,7 @@ app.post("/api/jobs", (req, res) => {
 });
 
 app.get("/api/jobs", (_req, res) => {
-  const files = existsSync("runs") ? readdirSync("runs").filter((f) => f.startsWith("job-") && f.endsWith(".jsonl")) : [];
+  const files = existsSync("runs") ? readdirSync("runs").filter((f) => (f.startsWith("job-") || f.startsWith("reverify-")) && f.endsWith(".jsonl")) : [];
   const jobs = files.map((f) => {
     const job = f.replace(/\.jsonl$/, "");
     const evs = readRun(job);
@@ -59,6 +60,10 @@ app.get("/api/events", (req, res) => {
   const tail = setInterval(flush, 700);
   const ping = setInterval(() => res.write(": ping\n\n"), 15000);
   req.on("close", () => { clearInterval(tail); clearInterval(ping); });
+});
+
+app.post("/api/reverify/:job", async (req, res) => {
+  try { res.json(await reverify(req.params.job)); } catch (e: any) { res.status(400).json({ error: String(e?.message ?? e) }); }
 });
 
 app.get("/run/:job", (_req, res) => res.sendFile("run.html", { root: "web" }));

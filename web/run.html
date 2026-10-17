@@ -17,6 +17,7 @@
   <h1>Run Card</h1>
   <div class="dim" id="sub">loading…</div>
   <div class="card" id="summary"></div>
+  <div class="card" id="rv"><b>Don't trust us: re-verify.</b> <span class="dim">Re-runs the hidden checks on the exact paid build in a fresh fork of the sealed base and compares the deterministic checks hash.</span><br><br><button id="rvbtn" style="background:#7c9cff;border:0;border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer">Re-verify this build</button> <span id="rvout" class="dim"></span></div>
   <div class="card"><b>Events</b> <span class="dim">(each event's hash covers the previous one; edit any line and the chain breaks)</span><div id="events"></div></div>
 </div>
 <script>
@@ -36,10 +37,14 @@ async function sha256(s) { const b = await crypto.subtle.digest("SHA-256", new T
     ["Hash chain", broken === -1 ? '<span class="ok">intact (verified in your browser)</span>' : `<span class="bad">BROKEN at event ${broken}</span>`],
     ["Pinned before work", `grader pack <code>${(start.pins?.grader_pack_sha256 || "").slice(0, 16)}</code> · task <code>${(start.pins?.task_sha256 || "").slice(0, 16)}</code> · policy <code>${(start.pins?.policy_sha256 || "").slice(0, 16)}</code>`],
     ["Perimeter", probe.verdict ? `${probe.verdict} · keys in agent env: ${probe.real_keys_in_env} · internet: ${probe.internet === "200" ? "open" : "blocked"}` : "–"],
+    ["Checks hash", ver.critical ? `<code>${ver.checksSha256 || "(computed on re-verify)"}</code>` : "–"],
     ["Hidden checks", ver.critical ? `critical ${ver.criticalPass ? '<span class="ok">pass</span>' : '<span class="bad">fail</span>'} · normal ${ver.normalPassed}/${ver.normalTotal} · verdict <code>${(ver.verdictSha256 || "").slice(0, 16)}</code>` : "–"],
     ["Payment", cap.paymentIntent ? `<span class="money">$${(cap.amount_received / 100).toFixed(2)} captured</span> of $${(cap.of / 100).toFixed(2)} · ${cap.paymentIntent}` : rel.paymentIntent ? `<span class="money">$0</span> · hold released (${rel.reason}) · ${rel.paymentIntent}` : auth.paymentIntent ? `held · ${auth.paymentIntent}` : "–"],
   ];
   document.getElementById("summary").innerHTML = rows.map(([k, v]) => `<div class="row"><div class="dim">${k}</div><div>${v}</div></div>`).join("");
+  const btn = document.getElementById("rvbtn"), out = document.getElementById("rvout");
+  if (!location.pathname.startsWith("/run/")) { btn.disabled = true; out.innerHTML = 'Run locally: <code>pnpm tsx src/reverify.ts ' + data.job + '</code>'; }
+  btn.onclick = async () => { btn.disabled = true; out.textContent = "forking the sealed base and re-running the hidden checks…"; const r = await (await fetch("/api/reverify/" + data.job, { method: "POST" })).json(); out.innerHTML = r.error ? `<span class="bad">${r.error}</span>` : (r.reproduced ? `<span class="ok">REPRODUCED</span>` : `<span class="bad">MISMATCH</span>`) + ` · original <code>${r.want.slice(0,16)}</code> · re-run <code>${r.got.slice(0,16)}</code> · <a href="/run/${r.card}">re-verify run card</a>`; btn.disabled = false; };
   document.getElementById("events").innerHTML = evs.map((e) => `<div class="ev"><b>#${e.seq} ${e.kind}</b> <span class="dim">${e.ts}</span><pre>${JSON.stringify(e.data, null, 1).slice(0, 1200).replace(/</g, "&lt;")}</pre></div>`).join("");
 })();
 </script>

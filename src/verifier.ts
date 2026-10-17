@@ -52,6 +52,12 @@ export async function ensureOperatorBase(card: RunCard, rebuild = false): Promis
   return base;
 }
 
+/** Deterministic hash over the pass/fail results only (logs and timings excluded), so anyone can reproduce it. */
+export function checksSha256(v: { critical: Record<string, boolean>; normal: Record<string, boolean> }) {
+  const sort = (o: Record<string, boolean>) => Object.fromEntries(Object.keys(o).sort().map((k) => [k, o[k]]));
+  return createHash("sha256").update(JSON.stringify({ critical: sort(v.critical), normal: sort(v.normal) })).digest("hex");
+}
+
 export type Verdict = {
   critical: Record<string, boolean>; normal: Record<string, boolean>; notes: string[];
   criticalPass: boolean; normalPassed: number; normalTotal: number; appLogTail?: string;
@@ -77,7 +83,7 @@ export async function runVerifier(card: RunCard, fork: Sandbox, appTgz: Uint8Arr
     const last = r.stdout.trim().split("\n").filter(Boolean).pop() ?? "{}";
     const verdict = JSON.parse(last) as Verdict;
     const verdictSha256 = createHash("sha256").update(last).digest("hex");
-    card.add("verifier.verdict", { ...verdict, verdictSha256 });
+    card.add("verifier.verdict", { ...verdict, verdictSha256, checksSha256: checksSha256(verdict) });
     return { verdict, verdictSha256 };
   } finally {
     await destroyQuietly(fork);
