@@ -57,24 +57,35 @@ export type Verdict = {
   criticalPass: boolean; normalPassed: number; normalTotal: number; appLogTail?: string;
 };
 
-/** Fork the base (NOT the agent VM), drop in only the agent's app, run graders by absolute path, read the verdict from stdout. */
-export async function verify(card: RunCard, base: Sandbox, appTgz: Uint8Array): Promise<{ verdict: Verdict; verdictSha256: string; forkMs: number }> {
+/** Fork the sealed base (NOT the agent VM). Started early so the fork's resume time is off the critical path. */
+export async function prepareVerifier(card: RunCard, base: Sandbox): Promise<{ fork: Sandbox; forkMs: number }> {
   const t0 = Date.now();
   const fork = await base.fork({ start_paused: false, egress: DENY_ALL });
+  await fork.waitUntilRunning();
+  const forkMs = Date.now() - t0;
+  card.add("verifier.fork", { from: base.id, id: fork.id, forkMs, network: "none", egress: DENY_ALL, note: "forked from the sealed operator base; the agent has no handle or route to it" });
+  return { fork, forkMs };
+}
+
+/** Drop in only the agent's app, run graders by absolute path, read the verdict from stdout, destroy the fork. */
+export async function runVerifier(card: RunCard, fork: Sandbox, appTgz: Uint8Array): Promise<{ verdict: Verdict; verdictSha256: string }> {
   try {
-    await fork.waitUntilRunning();
-    const forkMs = Date.now() - t0;
-    card.add("verifier.fork", { from: base.id, id: fork.id, forkMs, network: "none", egress: DENY_ALL });
     await fork.files.upload("/tmp/app.tgz", appTgz as any);
-    await sh(fork, "rm -rf /home/app/app && mkdir -p /home/app && tar xzf /tmp/app.tgz -C /home/app && chown -R app:app /home/app/app && ls /home/app/app | head -20");
+    await sh(fork, "rm -rf /home/app/app && mkdir -p /home/app && tar xzf /tmp/app.tgz -C /home/app && chown -R app:app /home/app/app");
+    card.add("verifier.run", { graders: "/opt/graders/run.mjs", as: "root (app runs as unprivileged user)", input: "agent app only" });
     const r = await sh(fork, "node /opt/graders/run.mjs", 300_000);
     const last = r.stdout.trim().split("\n").filter(Boolean).pop() ?? "{}";
     const verdict = JSON.parse(last) as Verdict;
     const verdictSha256 = createHash("sha256").update(last).digest("hex");
     card.add("verifier.verdict", { ...verdict, verdictSha256 });
-    return { verdict, verdictSha256, forkMs };
+    return { verdict, verdictSha256 };
   } finally {
     await destroyQuietly(fork);
     card.add("verifier.destroyed", { id: fork.id });
   }
+}
+
+export async function verify(card: RunCard, base: Sandbox, appTgz: Uint8Array) {
+  const { fork, forkMs } = await prepareVerifier(card, base);
+  return { ...(await runVerifier(card, fork, appTgz)), forkMs };
 }

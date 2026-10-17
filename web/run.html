@@ -20,10 +20,11 @@
   <div class="card"><b>Events</b> <span class="dim">(each event's hash covers the previous one; edit any line and the chain breaks)</span><div id="events"></div></div>
 </div>
 <script>
-const job = location.pathname.split("/").pop();
+const qs = new URLSearchParams(location.search);
+const job = qs.get("job") || location.pathname.split("/").pop();
 async function sha256(s) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)); return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join(""); }
 (async () => {
-  const src = window.RUN_JSON_URL || ("/api/runs/" + job);
+  const src = location.pathname.startsWith("/run/") ? ("/api/runs/" + job) : ("runs/" + job + ".json");
   const data = await (await fetch(src)).json();
   const evs = data.events;
   let prev = "genesis", broken = -1;

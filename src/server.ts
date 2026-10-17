@@ -25,8 +25,10 @@ app.get("/api/jobs", (_req, res) => {
   const jobs = files.map((f) => {
     const job = f.replace(/\.jsonl$/, "");
     const evs = readRun(job);
-    const done = evs.find((e) => e.kind === "job.done");
-    return { job, events: evs.length, running: running.has(job), started: evs[0]?.ts, captured: (done?.data as any)?.captured ?? null, status: (done?.data as any)?.status ?? (running.has(job) ? "running" : evs.some((e) => e.kind === "job.error") ? "error" : "unknown") };
+    const cap = evs.find((e) => e.kind === "stripe.captured")?.data as any;
+    const rel = evs.find((e) => e.kind === "stripe.released")?.data as any;
+    const status = cap ? "captured" : rel ? "released" : running.has(job) ? "running" : evs.some((e) => e.kind === "job.error") ? "error" : evs.some((e) => e.kind === "job.done") ? "done" : "incomplete";
+    return { job, events: evs.length, running: running.has(job), started: evs[0]?.ts, captured: cap ? cap.amount_received : rel ? 0 : null, status };
   }).sort((a, b) => String(b.started).localeCompare(String(a.started)));
   res.json(jobs);
 });

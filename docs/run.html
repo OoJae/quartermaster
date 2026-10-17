@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Run Card</title>
+<style>
+  :root { --bg:#0b0d12; --panel:#12151c; --line:#232836; --text:#e7e9ee; --dim:#8b93a7; --ok:#3ddc97; --bad:#ff6b6b; --money:#c3a6ff }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.5 ui-sans-serif,system-ui,-apple-system } .wrap { max-width:980px; margin:0 auto; padding:28px 18px }
+  h1 { margin:0 0 4px } .dim { color:var(--dim) } .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:16px }
+  .row { display:grid; grid-template-columns:200px 1fr; gap:8px; padding:4px 0 } .ok { color:var(--ok) } .bad { color:var(--bad) } .money { color:var(--money); font-weight:700 }
+  pre { white-space:pre-wrap; word-break:break-word; font:12px/1.45 ui-monospace,Menlo,monospace; margin:0 } .ev { border-bottom:1px dashed #1c2131; padding:6px 0 }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Run Card</h1>
+  <div class="dim" id="sub">loading…</div>
+  <div class="card" id="summary"></div>
+  <div class="card"><b>Events</b> <span class="dim">(each event's hash covers the previous one; edit any line and the chain breaks)</span><div id="events"></div></div>
+</div>
+<script>
+const qs = new URLSearchParams(location.search);
+const job = qs.get("job") || location.pathname.split("/").pop();
+async function sha256(s) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)); return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join(""); }
+(async () => {
+  const src = location.pathname.startsWith("/run/") ? ("/api/runs/" + job) : ("runs/" + job + ".json");
+  const data = await (await fetch(src)).json();
+  const evs = data.events;
+  let prev = "genesis", broken = -1;
+  for (let i = 0; i < evs.length; i++) { const { hash, ...body } = evs[i]; if (body.prev !== prev || (await sha256(JSON.stringify(body))) !== hash) { broken = i; break; } prev = hash; }
+  const get = (k) => evs.find((e) => e.kind === k)?.data || {};
+  const auth = get("stripe.authorized"), cap = get("stripe.captured"), rel = get("stripe.released"), ver = get("verifier.verdict"), start = get("job.start"), probe = get("perimeter.probe");
+  document.getElementById("sub").textContent = `${data.job} · ${evs.length} events · head ${evs.at(-1)?.hash.slice(0, 16)}`;
+  const rows = [
+    ["Hash chain", broken === -1 ? '<span class="ok">intact (verified in your browser)</span>' : `<span class="bad">BROKEN at event ${broken}</span>`],
+    ["Pinned before work", `grader pack <code>${(start.pins?.grader_pack_sha256 || "").slice(0, 16)}</code> · task <code>${(start.pins?.task_sha256 || "").slice(0, 16)}</code> · policy <code>${(start.pins?.policy_sha256 || "").slice(0, 16)}</code>`],
+    ["Perimeter", probe.verdict ? `${probe.verdict} · keys in agent env: ${probe.real_keys_in_env} · internet: ${probe.internet === "200" ? "open" : "blocked"}` : "–"],
+    ["Hidden checks", ver.critical ? `critical ${ver.criticalPass ? '<span class="ok">pass</span>' : '<span class="bad">fail</span>'} · normal ${ver.normalPassed}/${ver.normalTotal} · verdict <code>${(ver.verdictSha256 || "").slice(0, 16)}</code>` : "–"],
+    ["Payment", cap.paymentIntent ? `<span class="money">$${(cap.amount_received / 100).toFixed(2)} captured</span> of $${(cap.of / 100).toFixed(2)} · ${cap.paymentIntent}` : rel.paymentIntent ? `<span class="money">$0</span> · hold released (${rel.reason}) · ${rel.paymentIntent}` : auth.paymentIntent ? `held · ${auth.paymentIntent}` : "–"],
+  ];
+  document.getElementById("summary").innerHTML = rows.map(([k, v]) => `<div class="row"><div class="dim">${k}</div><div>${v}</div></div>`).join("");
+  document.getElementById("events").innerHTML = evs.map((e) => `<div class="ev"><b>#${e.seq} ${e.kind}</b> <span class="dim">${e.ts}</span><pre>${JSON.stringify(e.data, null, 1).slice(0, 1200).replace(/</g, "&lt;")}</pre></div>`).join("");
+})();
+</script>
+</body>
+</html>

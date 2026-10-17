@@ -4,9 +4,9 @@ import { RunCard } from "./runcard.js";
 import { Site } from "./site.js";
 import { Broker } from "./requisition.js";
 import { runAgent } from "./agent.js";
-import { ensureOperatorBase, verify, graderPackSha } from "./verifier.js";
+import { ensureOperatorBase, prepareVerifier, runVerifier, graderPackSha } from "./verifier.js";
 import { authorize, settle } from "./settle.js";
-import { cos, sh } from "./createos.js";
+import { cos, sh, destroyQuietly } from "./createos.js";
 import { TASK } from "./task.js";
 
 const sha = (s: string | Buffer) => createHash("sha256").update(s).digest("hex");
@@ -17,6 +17,7 @@ export async function runJob(jobId: string, opts: JobOptions = {}) {
   const card = new RunCard(jobId);
   const t0 = Date.now();
   let site: Site | null = null;
+  let verifierP: ReturnType<typeof prepareVerifier> | null = null;
   try {
     // 0. pin the rules of the job BEFORE any work happens
     const pins = {
@@ -31,6 +32,9 @@ export async function runJob(jobId: string, opts: JobOptions = {}) {
 
     // 2. sealed operator base (graders + offline fakes), reused across jobs
     const base = await ensureOperatorBase(card);
+    // fork the verifier now, in parallel with the build; it stays sealed and untouched until "done"
+    verifierP = prepareVerifier(card, base);
+    verifierP.catch(() => {});
 
     // 3. the site: credential proxy + keyless agent VM locked to the proxy
     site = new Site(jobId, card);
@@ -48,10 +52,11 @@ export async function runJob(jobId: string, opts: JobOptions = {}) {
     const tgz = new Uint8Array(await site.agent.files.download("/tmp/app.tgz"));
 
     // 6. hidden acceptance tests in a fork of the sealed base (not of the agent VM)
-    const { verdict, verdictSha256 } = await verify(card, base, tgz);
+    const { fork } = await verifierP;
+    const { verdict, verdictSha256 } = await runVerifier(card, fork, tgz);
 
     // 7. hygiene: every VM we created is accounted for (no orphans)
-    const expected = new Set([base.id, site.proxy.id, site.agent.id]);
+    const expected = new Set([base.id, site.proxy.id, site.agent.id, fork.id]);
     const live = (await cos.listSandboxes({ limit: 100 })).filter((b) => !["destroyed", "destroying", "failed"].includes(b.toJSON().status));
     const orphans = live.filter((b) => !expected.has(b.id) && (b.toJSON().name ?? "").startsWith("q"));
     card.add("hygiene.check", { live: live.length, orphans: orphans.map((b) => b.toJSON().name) });
@@ -66,5 +71,6 @@ export async function runJob(jobId: string, opts: JobOptions = {}) {
     throw e;
   } finally {
     if (site) await site.down(!!opts.keepSite).catch(() => {});
+    if (verifierP) await verifierP.then((v) => destroyQuietly(v.fork)).catch(() => {});
   }
 }
