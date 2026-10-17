@@ -1,7 +1,7 @@
 import express from "express";
 import { readdirSync, existsSync } from "node:fs";
 import { env } from "./env.js";
-import { bus, readRun, verifyChain, type RunEvent } from "./runcard.js";
+import { readRun, verifyChain } from "./runcard.js";
 import { approvals } from "./requisition.js";
 import { runJob } from "./job.js";
 import { reloadEnv } from "./stripecli.js";
@@ -48,11 +48,17 @@ app.post("/api/requisitions/:id/:decision", (req, res) => {
 app.get("/api/events", (req, res) => {
   res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache", connection: "keep-alive" });
   const job = String(req.query.job ?? "");
-  if (job) for (const ev of readRun(job)) res.write(`data: ${JSON.stringify(ev)}\n\n`);
-  const on = (ev: RunEvent) => { if (!job || ev.job === job) res.write(`data: ${JSON.stringify(ev)}\n\n`); };
-  bus.on("event", on);
+  // Tail the Run Card file so jobs started from the CLI (another process) stream live too.
+  let sent = 0;
+  const flush = () => {
+    if (!job) return;
+    const evs = readRun(job);
+    for (; sent < evs.length; sent++) res.write(`data: ${JSON.stringify(evs[sent])}\n\n`);
+  };
+  flush();
+  const tail = setInterval(flush, 700);
   const ping = setInterval(() => res.write(": ping\n\n"), 15000);
-  req.on("close", () => { bus.off("event", on); clearInterval(ping); });
+  req.on("close", () => { clearInterval(tail); clearInterval(ping); });
 });
 
 app.get("/run/:job", (_req, res) => res.sendFile("run.html", { root: "web" }));

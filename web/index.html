@@ -106,6 +106,8 @@ function apply(e) {
   $("k-chain").textContent = "#" + e.seq; $("k-head").textContent = "head " + short(e.hash);
   if (e.kind === "vm.create" && d.role === "agent") { $("k-keys").textContent = d.keysHeld ?? 0; $("k-reach").textContent = "1 host"; $("k-reach-s").textContent = (d.egress || []).join(", ") + " (proxy only)"; $("n-agent").classList.add("live"); $("n-agent-m").textContent = "egress " + (d.egress || []).join(", "); $("q2").textContent = "yes: allowlist = proxy IP only"; $("q5").textContent = "never in the agent VM; proxy injects per route"; }
   if (e.kind === "vm.create" && d.role === "credential-proxy") { $("n-proxy").classList.add("live"); $("n-proxy-m").textContent = "private IP " + d.privateIp; }
+  if (e.kind === "agent.start") { $("n-agent-m").textContent = `${d.model} · ` + $("n-agent-m").textContent; }
+  if (e.kind === "agent.done") { $("n-agent").classList.add("ok"); }
   if (e.kind === "perimeter.probe") { $("k-keys").textContent = d.real_keys_in_env; $("q1").textContent = `real keys in env: ${d.real_keys_in_env} · internet: ${d.internet === "200" ? "OPEN" : "blocked"} · proxy: ${d.proxy}`; }
   if (e.kind === "proxy.capability") document.querySelector(`.pill[data-c="${d.capability}"]`)?.classList.add("on");
   if (e.kind === "requisition.quote") { const el = $("reqs"); if (el.querySelector(".m")) el.innerHTML = ""; const r = document.createElement("div"); r.className = "req"; r.id = "r-" + d.reqId; r.innerHTML = `<b>${d.capability}</b> → ${d.provider}/${d.service} · ${d.tier} · $${d.priceUsd}<br><code></code><div class="st" style="color:var(--dim)">quoted</div>`; r.querySelector("code").textContent = d.command; el.appendChild(r); }

@@ -13,7 +13,7 @@ Built at the CreateOS × Stripe Projects hackathon (Oct 17 2026). It started fro
    - a **credential-proxy VM** that holds real provider secrets in its process env only;
    - a **keyless agent VM** whose egress allowlist is exactly `[<proxy private IP>/32]`.
    - A probe verifies the boundary before any agent code runs: proxy reachable, internet blocked, `real_keys_in_env = 0`.
-3. **The agent (Claude Opus 5.5) writes and runs its own code** in the microVM.
+3. **The agent writes and runs its own code** in the microVM. Any Anthropic-protocol model works: `claude-opus-5-5` by default, or `AGENT_BASE_URL`/`AGENT_MODEL` (our hackathon runs used `mimo-v2.6-pro` via its Anthropic-compatible endpoint).
    - When it needs Postgres or email, the proxy answers `no_capability`, and the agent files a **requisition**.
    - The deterministic broker (not an LLM) quotes it from **Stripe Directory** and the **Stripe Projects catalog**, checks `policy.yaml`, and runs `stripe projects add <provider>/<service> --json --non-interactive`.
    - It then loads the real secret into the **proxy**, never the agent VM.
@@ -47,7 +47,9 @@ pnpm start                               # dashboard on http://localhost:4747
 pnpm job                                 # or run one job from the terminal
 pnpm tsx src/verifyfixture.ts buggy      # deterministic "bad build earns $0" demo
 ```
-Required env (via `stripe projects variables set`): `ANTHROPIC_API_KEY`, `STRIPE_TEST_SECRET_KEY`.
+Required env (via `stripe projects variables set`): `STRIPE_TEST_SECRET_KEY`, plus either `ANTHROPIC_API_KEY` or `AGENT_BASE_URL` + `AGENT_API_KEY` + `AGENT_MODEL` for any Anthropic-compatible endpoint.
+
+Live Run Card gallery: https://oojae.github.io/quartermaster/
 
 ## Measured facts we relied on (CreateOS alpha, measured by us)
 - Egress rules **do** apply to private-network traffic, so the agent allowlist is the proxy's IP, not "deny all".
