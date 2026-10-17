@@ -61,6 +61,9 @@ Live Run Card gallery: https://oojae.github.io/quartermaster/
 - Managed processes only accept env keys declared at sandbox creation, so the proxy VM is created with placeholders and real values are passed to the process only.
 - Fork of a paused VM → running in ~3–4 s when warm (cold base: ~28 s).
 
+## Stripe Projects build template
+`templates/quartermaster.yaml` is a registry-format manifest (services `createos/project`, `neon/postgres`, `resend/email`, with `tier_plans`), so anyone can `stripe projects build` a keyless CreateOS agent. Daytona and E2B have templates in the registry; CreateOS doesn't yet.
+
 ## Repo map
 - `src/site.ts`: network, credential proxy, keyless agent VM, perimeter probe
 - `src/requisition.ts`: quote → policy → Stripe Projects provisioning → proxy grant

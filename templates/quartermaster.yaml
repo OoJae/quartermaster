@@ -1,0 +1,54 @@
+# Stripe Projects build template manifest for Quartermaster (CreateOS has no template in the registry yet).
+# Local test:  stripe projects build my-agent --template-manifest $(pwd)/templates/quartermaster.yaml
+# Registry:    copy to projects-template-registry/createos_keyless_agent/quartermaster.yaml and open a PR.
+guided:
+  category: ai_agent
+  framework: node
+
+template: oojae/createos-keyless-agent
+variant: quartermaster
+default: true
+variant_description: CreateOS • Neon • Resend
+install_command: pnpm install
+
+metadata:
+  name: Keyless coding agent on CreateOS (Quartermaster)
+  description: A coding agent that never holds your keys, requisitions infra through Stripe Projects, runs in a CreateOS microVM locked to a credential proxy, and is paid via Stripe manual capture only when hidden tests pass.
+  owner: OoJae
+  tags:
+    - AI agents
+    - Sandbox
+    - CreateOS
+    - Payments
+
+repo: https://github.com/OoJae/quartermaster
+ref: f63f043feb26d868368f88baf238b91fb2c634c8
+
+services:
+  - createos/project
+  - neon/postgres
+  - resend/email
+
+tier_plans:
+  createos/project:
+    free_lowest_cost: createos/free
+    starter_paid: createos/beginner-monthly
+    higher_scale: createos/pro-monthly
+  neon/postgres:
+    free_lowest_cost: neon/free
+    starter_paid: neon/free
+    higher_scale: neon/free
+  resend/email:
+    free_lowest_cost: resend/free
+    starter_paid: resend/free
+    higher_scale: resend/free
+
+next_steps:
+  - label: Add your keys (Stripe test key + agent model)
+    command: stripe projects variables set stripe-test-key --env-key STRIPE_TEST_SECRET_KEY
+  - label: Build and seal the operator base (once)
+    command: pnpm tsx src/buildbase.ts
+  - label: Start the dashboard
+    command: pnpm start
+  - label: Run a paid, verified agent job
+    command: pnpm job --keep
